@@ -8,7 +8,7 @@ Design summary for anyone enhancing the app. Written 2026-10-28 and checked agai
 |---|---|
 | Repo | `Dwdutch/spanish-trainer-app` (public) https://github.com/Dwdutch/spanish-trainer-app |
 | Branch | `main` (only branch; GitHub Pages serves it, root folder) |
-| Commits | 7 on `main`. App code last changed in `9ccd8f3`; `d101ce1` added DESIGN.md. Check the commits page for anything newer. |
+| Commits | App code last changed in `9ccd8f3`. Later commits updated `DESIGN.md` and the two `words.json` files (cleanup on 2026-10-28). Check the commits page for anything newer. |
 | David's app | https://dwdutch.github.io/spanish-trainer-app/david/ |
 | Lynn's app | https://dwdutch.github.io/spanish-trainer-app/lynn/ |
 | Landing page | https://dwdutch.github.io/spanish-trainer-app/ (two links) |
@@ -20,7 +20,7 @@ index.html                  landing page (links to david/ and lynn/)
 README.md
 DESIGN.md                   this file
 david/index.html            the whole app (CSS + JS inline, about 44 KB)
-david/words.json            word list, 770 rows (769 unique), 322 rows flagged m:1 (321 unique)
+david/words.json            word list, 768 words, 321 flagged m:1
 david/sw.js                 service worker, cache name spanish-trainer-david-<build>
 david/manifest.webmanifest
 lynn/index.html             identical app; only PROFILE and NAME constants differ
@@ -39,7 +39,7 @@ How updates deploy: there is no build step in the repo. Commit changed files to 
 
 A flashcard app in the style of Duolingo's "Say the words in Spanish", built on David's Duolingo word list. It runs as a Home Screen web app on an iPhone (Safari, Add to Home Screen) and works with no connection after the first load. Cards mix English-to-Spanish and Spanish-to-English. No microphone in v1. Light background and large print on purpose (David prints and reads on a phone, and dislikes dark backgrounds).
 
-Two profiles, same code: david (770 words) and lynn (474 words). Each keeps separate scores, because each profile has its own localStorage key and its own service worker cache. The word master list is the spreadsheet `Duolingo_Spanish_Words.xlsx` (see section 4).
+Two profiles, same code: david (768 words) and lynn (474 words). Each keeps separate scores, because each profile has its own localStorage key and its own service worker cache. The word master list is the spreadsheet `Duolingo_Spanish_Words.xlsx` (see section 4).
 
 ## 3. Code organization (`david/index.html`)
 
@@ -66,12 +66,14 @@ Source: David's Duolingo Words page, copied into the spreadsheet `Duolingo_Spani
 Published format, `words.json`:
 
 ```json
-{"v":1,"words":[{"es":"hola","en":"hello","m":1},{"es":"aprender","en":"to learn","tags":["verb"]}]}
+{"v":1,"words":[{"es":"hola","en":"hello","m":1},{"es":"aprender","en":"to learn","tags":["verb"]}]}  (illustrative; the real files have no tags yet)
 ```
 
-`es` and `en` are required. `m:1` means "already mastered" and `tags` is optional (no word in the current files has tags; the Words tab shows tag chips when tags exist). The Print 2-up sheet in the xlsx is a print layout of the same words. English glosses use comma-separated meanings (for example `reloj` = "watch, clock"). Cleanup already applied: "(?)" markers removed, "studyin" corrected to "studying", camiseta = "T-shirt", maestro = general teacher, profesor = secondary and above teacher.
+`es` and `en` are required. `m:1` means "already mastered" and `tags` is optional (no word in the current files has tags; the Words tab shows tag chips when tags exist). The "Print 2-up" sheet in the xlsx is a print layout of the same words, stored as fixed values (not linked), so it must be regenerated whenever the list changes. English glosses use comma-separated meanings (for example `reloj` = "watch, clock"). Cleanup already applied: "(?)" markers removed, "studyin" corrected to "studying", camiseta = "T-shirt", maestro = general teacher, profesor = secondary and above teacher.
 
-Counts: David's `words.json` has 770 rows (769 unique keys, because `hola` appears twice); 322 rows carry `m:1`, which is 321 unique words. Lynn's file has 474 rows with no `m` flags. Lynn's source was `Lynn_Duolingo_Spanish_Words_StudySheet` in the same folder.
+Counts (after the 2026-10-28 cleanup): David's `words.json` has 768 words, 321 of them flagged `m:1`, in Duolingo's "Recently learned" order (newest first), matching the spreadsheet. Lynn's file has 474 words with no `m` flags; they are the oldest 474 entries of David's list.
+
+Spreadsheet columns on "Spanish Words": A Spanish, B English, C Mastered (`x`), D Tags, E Status, F Times Right, G Times Wrong, H Streak, I Last Practiced, **J Order** (fixed number, 1 = oldest, 768 = newest; never renumbered, new words get the next number; sort freely and re-sort by Order to restore Duolingo order), **K Stage** (formula from Order: Recent = newest 100, Middle = next 100, Early = the rest). Stage settings are in M1:N4 (N2 and N3 hold the 100s). Print area is A:B only. The app does not read Order or Stage yet. Lynn's source was `Lynn_Duolingo_Spanish_Words_StudySheet` in the same folder.
 
 How it loads and updates:
 - Each launch calls `syncWords(true)`, which fetches `words.json?t=<now>` with `cache:"no-store"`. The service worker serves network first and falls back to the cached copy with an `x-offline: 1` header, which the app reads to say "No connection. Using the saved word list."
@@ -168,7 +170,6 @@ Decisions and why:
 - No microphone in v1 (pronunciation practice is out of scope for now).
 
 Known issues and limits:
-- Duplicate `hola` row in David's `words.json` (harmless).
 - The "start verbs" note in Progress shows whenever mastered is 100 or more. David already has 321 mastered words from the xlsx seeding, so it appears immediately and cannot act as a "good time" signal as designed. Consider a one-time dismiss or a threshold based on words mastered through the app.
 - Deleting a word on the phone only removes it locally; the next sync re-adds it if it is still in `words.json`.
 - After a per-word Reset or "Erase all scores", the seeded flags are not reapplied (see section 7).
@@ -180,7 +181,7 @@ Known issues and limits:
 - Choice cards show only the first two meanings of a gloss (`shortGloss`), while flip and intro cards show the full gloss.
 - Lynn's list has no mastered flags yet; her Mastered column can be marked later in her word table.
 
-Planned features: verb practice (present tense, then preterite, irregular verbs, reflexive verbs). The Progress tab already shows a prompt note once 100 words are mastered; David asked to be reminded at a good time, and the current threshold is `c.mastered>=100` in `renderProgress`.
+Planned features: Demo mode (section 11 example); a Recent/Middle/Early filter worked out in the app from word order (not stored as tags, because the sync only adds tags and never removes them); a Conjugation Review that links conjugated forms to their base verbs (a draft count found 66 forms of 20 missing base verbs plus 7 forms of verbs already in the list; the link would be a new optional field, never a replacement of the form cards); verb practice (present tense, then preterite, irregular verbs, reflexive verbs). The Progress tab already shows a prompt note once 100 words are mastered; David asked to be reminded at a good time, and the current threshold is `c.mastered>=100` in `renderProgress`.
 
 ## 11. Guidance for adding features safely
 
