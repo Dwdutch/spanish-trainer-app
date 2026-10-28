@@ -1,4 +1,4 @@
-var CACHE="spanish-trainer-david-1793043060";
+var CACHE="spanish-trainer-david-1793214946";
 var ASSETS=["./","index.html","words.json","manifest.webmanifest","../fonts/nunito-latin-400-normal.woff2","../fonts/nunito-latin-700-normal.woff2","../fonts/nunito-latin-900-normal.woff2","../icons/icon-180.png","../icons/icon-192.png"];
 self.addEventListener("install",function(e){e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(ASSETS)}).then(function(){return self.skipWaiting()}))});
 self.addEventListener("activate",function(e){e.waitUntil(caches.keys().then(function(ks){return Promise.all(ks.filter(function(k){return k.indexOf("spanish-trainer-david-")===0&&k!==CACHE}).map(function(k){return caches.delete(k)}))}).then(function(){return self.clients.claim()}))});
